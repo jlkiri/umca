@@ -1,13 +1,13 @@
 {
   "name": "awave",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "MIT",
   "author": "Kirill Vasiltsov",
   "main": "dist/index.js",
   "module": "dist/awave.esm.js",
   "typings": "dist/index.d.ts",
   "bin": {
-    "purejsx": "./dist/awave.cjs.development.js"
+    "awave": "./dist/awave.cjs.development.js"
   },
   "files": [
     "dist"
