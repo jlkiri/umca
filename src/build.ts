@@ -3,8 +3,10 @@ import fs from 'fs-extra';
 import path from 'path';
 import sade from 'sade';
 import execa from 'execa';
-import ora, { Ora } from 'ora';
+import ora from 'ora';
 import chalk from 'chalk';
+import { prompt } from 'enquirer';
+import shell from 'shelljs';
 import buble, { RollupBubleOptions } from '@rollup/plugin-buble';
 import resolve from 'rollup-plugin-node-resolve';
 import injectHtml from './plugins/rollup-plugin-inject-html';
@@ -25,13 +27,38 @@ const outputOptions: OutputOptions = {
   format: 'cjs',
 };
 
+function getAuthorName() {
+  let author = '';
+
+  author = shell
+    .exec('npm config get init-author-name', { silent: true })
+    .stdout.trim();
+
+  if (author) return author;
+
+  author = shell
+    .exec('git config --global user.name', { silent: true })
+    .stdout.trim();
+
+  if (author) {
+    setAuthorName(author);
+    return author;
+  }
+
+  return author;
+}
+
+function setAuthorName(author: string) {
+  shell.exec(`npm config set init-author-name "${author}"`, { silent: true });
+}
+
 function buildInputOptions(projectPath: string) {
   const hasPages = fs.existsSync(`${projectPath}/pages`);
   const mdPages = hasPages
     ? fs.readdirSync(`${projectPath}/pages`).map(page => `pages/${page}`)
-    : []
+    : [];
 
-  const requireHtmlPath = hasPages ? "../../index.js" : "../index.js";
+  const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
 
   const inputOptions: InputOptions = {
     input: ['sources/index.jsx', ...mdPages],
@@ -53,11 +80,10 @@ function buildInputOptions(projectPath: string) {
 
 const htmlBuilder = createHtmlBuilder();
 
-async function build(inputOptions: InputOptions, hasPages: boolean, progress: Ora) {
+async function build(inputOptions: InputOptions, hasPages: boolean) {
   const moduleKeeper = createModuleKeeper();
+  const compileProgress = ora(chalk.cyanBright('Compiling sources...')).start();
 
-  progress.text = chalk.cyanBright('Compiling sources');
-  progress.start();
   const bundle = await rollup.rollup(inputOptions);
 
   const { output } = await bundle.generate(outputOptions);
@@ -73,12 +99,13 @@ async function build(inputOptions: InputOptions, hasPages: boolean, progress: Or
 
   await bundle.write(outputOptions);
 
-  progress.succeed();
-  progress.text = chalk.cyanBright('Building HTML files');
-  progress.start();
+  compileProgress.succeed(chalk.cyanBright('Compiled sources'));
 
-  const sourceDir = hasPages ? 'sources' : ""
-  const entryTest = (name: string) => hasPages ? `sources/${name}` : name;
+  const htmlProgress = ora(chalk.cyanBright('Building HTML files'));
+  htmlProgress.start();
+
+  const sourceDir = hasPages ? 'sources' : '';
+  const entryTest = (name: string) => (hasPages ? `sources/${name}` : name);
 
   const componentPath = path.join(CACHE_PATH, sourceDir);
 
@@ -120,7 +147,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean, progress: Or
         htmlContent
       );
 
-      progress.succeed();
+      htmlProgress.succeed('Built HTML files');
     }
   }
 }
@@ -130,7 +157,7 @@ cli
   .describe('Create a new purejsx project in the specified directory')
   .example('create myblog')
   .action(async dir => {
-    const progress = ora(chalk.cyanBright('Creating a project')).start();
+    const bootProgress = ora(chalk.cyanBright('Creating a project...')).start();
     const projectPath = `${fs.realpathSync(process.cwd())}/${dir}`;
 
     await fs.copy(path.resolve(__dirname, 'templates'), projectPath, {
@@ -139,14 +166,50 @@ cli
 
     process.chdir(projectPath);
 
+    let author = getAuthorName();
+
+    if (!author) {
+      bootProgress.stop();
+      const author = await prompt({
+        type: 'input',
+        name: 'author',
+        message: 'Who is the package author?',
+      });
+      setAuthorName((author as any).author);
+      bootProgress.start();
+    }
+
+    const pkgJson = {
+      name: dir,
+      version: '0.1.0',
+      license: 'MIT',
+      author: author,
+      scripts: {
+        build: 'awave build',
+      },
+      prettier: {
+        printWidth: 80,
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+      },
+    };
+
+    await fs.outputJSON(path.resolve(projectPath, 'package.json'), pkgJson);
+
     const depsToInstall = Object.keys(pkg.dependencies);
 
-    progress.succeed();
-    progress.text = chalk.cyanBright('Installing dependencies');
+    bootProgress.succeed(chalk.cyanBright('Created a project'));
+
+    const installProgress = ora(
+      chalk.cyanBright('Installing dependencies...')
+    ).start();
 
     await execa('yarn', ['add', ...depsToInstall]);
 
-    progress.succeed(chalk.cyanBright('Done!'));
+    installProgress.succeed(chalk.cyanBright('Installed dependencies'));
+
+    console.log(chalk.green('Done!'), 'Now you are ready to start coding!');
   });
 
 cli
@@ -154,16 +217,12 @@ cli
   .describe('Build the source directory. Expects an `index.js` entry file')
   .action(async () => {
     console.log(chalk.cyanBright('Initiating a build...'));
-    const progress = ora();
-
 
     const projectPath = `${fs.realpathSync(process.cwd())}`;
 
     const { inputOptions, hasPages } = buildInputOptions(projectPath);
 
-    await build(inputOptions, hasPages, progress);
-
-    progress.succeed(chalk.cyanBright('Done!'));
+    await build(inputOptions, hasPages);
   });
 
 cli.parse(process.argv);

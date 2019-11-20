@@ -1,6 +1,6 @@
 {
   "name": "awave",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": "Kirill Vasiltsov",
   "main": "dist/index.js",
@@ -29,15 +29,18 @@
   },
   "dependencies": {
     "@rollup/plugin-buble": "^0.20.0",
+    "awave": "^0.1.2",
     "buble": "^0.19.8",
     "chalk": "^3.0.0",
+    "enquirer": "^2.3.2",
     "execa": "^3.3.0",
     "fs-extra": "^8.1.0",
-    "ora": "^4.0.3",
     "marked": "^0.7.0",
+    "ora": "^4.0.3",
     "rollup": "^1.27.2",
     "rollup-plugin-node-resolve": "^5.2.0",
     "sade": "^1.6.1",
+    "shelljs": "^0.8.3",
     "typescript": "^3.7.2"
   },
   "devDependencies": {

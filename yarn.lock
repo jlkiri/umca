@@ -1318,6 +1318,23 @@ atob@^2.1.1:
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
+awave@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/awave/-/awave-0.1.1.tgz#2e971c4eb40e192589405054329604ba9b4a5aaa"
+  integrity sha512-+1UPzUyvvGGKC0QO/MVTi3w7rwwiZGXERR54iUudp2r6HkxwAv0+VmOHcfoQDdgbcSLxj7KlJeoFfEmR3m9Dfg==
+  dependencies:
+    "@rollup/plugin-buble" "^0.20.0"
+    buble "^0.19.8"
+    chalk "^3.0.0"
+    execa "^3.3.0"
+    fs-extra "^8.1.0"
+    marked "^0.7.0"
+    ora "^4.0.3"
+    rollup "^1.27.2"
+    rollup-plugin-node-resolve "^5.2.0"
+    sade "^1.6.1"
+    typescript "^3.7.2"
+
 aws-sign2@~0.7.0:
   version "0.7.0"
   resolved "https://registry.yarnpkg.com/aws-sign2/-/aws-sign2-0.7.0.tgz#b46e890934a9591f2d2f6f86d7e6a9f1b3fe76a8"
@@ -2109,7 +2126,7 @@ end-of-stream@^1.1.0:
   dependencies:
     once "^1.4.0"
 
-enquirer@^2.3.0:
+enquirer@^2.3.0, enquirer@^2.3.2:
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/enquirer/-/enquirer-2.3.2.tgz#1c30284907cadff5ed2404bd8396036dd3da070e"
   integrity sha512-PLhTMPUXlnaIv9D3Cq3/Zr1xb7soeDDgunobyCmYLUG19n24dvC8i+ZZgm2DekGpDnx7JvFSHV7lxfM58PMtbA==
