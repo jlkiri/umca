@@ -1,6 +1,6 @@
 {
   "name": "awave",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "author": "Kirill Vasiltsov",
   "main": "dist/index.js",
@@ -34,6 +34,7 @@
     "execa": "^3.3.0",
     "fs-extra": "^8.1.0",
     "ora": "^4.0.3",
+    "marked": "^0.7.0",
     "rollup": "^1.27.2",
     "rollup-plugin-node-resolve": "^5.2.0",
     "sade": "^1.6.1",
@@ -46,8 +47,6 @@
     "@types/marked": "^0.7.1",
     "@types/sade": "^1.6.0",
     "husky": "^3.0.9",
-    "marked": "^0.7.0",
-    "rollup-plugin-node-resolve": "^5.2.0",
     "tsdx": "^0.11.0",
     "tslib": "^1.10.0"
   }
