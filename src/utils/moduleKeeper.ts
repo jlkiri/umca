@@ -1,5 +1,5 @@
 function createModuleKeeper() {
-  const modules = { entryFileName: '', templateHTML: '' };
+  const modules = { entryFileName: '' };
 
   function saveEntryFileName(name: string) {
     modules.entryFileName = name;
@@ -9,18 +9,8 @@ function createModuleKeeper() {
     return modules.entryFileName === name;
   }
 
-  function saveTemplateHTML(html: string) {
-    modules.templateHTML = html;
-  }
-
-  function getTemplateHTML() {
-    return modules.templateHTML;
-  }
-
   return {
     saveEntryFileName,
-    saveTemplateHTML,
-    getTemplateHTML,
     isEntry,
   };
 }
