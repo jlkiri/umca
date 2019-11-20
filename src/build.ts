@@ -61,7 +61,7 @@ function buildInputOptions(projectPath: string) {
   const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
 
   const inputOptions: InputOptions = {
-    input: ['sources/index.jsx', ...mdPages],
+    input: ['src/index.jsx', ...mdPages],
     preserveModules: true,
     plugins: [
       resolve({
@@ -104,8 +104,8 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
   const htmlProgress = ora(chalk.cyanBright('Building HTML files'));
   htmlProgress.start();
 
-  const sourceDir = hasPages ? 'sources' : '';
-  const entryTest = (name: string) => (hasPages ? `sources/${name}` : name);
+  const sourceDir = hasPages ? 'src' : '';
+  const entryTest = (name: string) => (hasPages ? `src/${name}` : name);
 
   const componentPath = path.join(CACHE_PATH, sourceDir);
 
