@@ -3,11 +3,12 @@ import isComponent from './isComponent';
 type HTMLString = string;
 
 export interface ARTNode {
-  id?: string;
-  htmlString: HTMLString;
-  tag: Tag;
-  attrs: Attrs | NativeAttrs | null;
-  children: ARTNode[];
+  id?: string,
+  htmlString: HTMLString,
+  tag: Tag,
+  attrs: Attrs | NativeAttrs | null,
+  children: ARTNode[],
+  meta: { localLinks: LocalLinks }
 }
 
 type Tag = string | Component;
@@ -21,20 +22,42 @@ type BuildHtml = (
   ...children: Children
 ) => ARTNode;
 
+type MemoizedComponentsMap = Map<Component, ARTNode>;
+
 export type Component = (attrs: Attrs | null) => ARTNode;
 
-export interface HtmlBuilderOuput {
-  renderToHTMLString: BuildHtml;
-  links: { [link: string]: HTMLString };
+export interface LocalLinks {
+  [link: string]: HTMLString
 }
 
-export type CreateHtmlBuilder = () => HtmlBuilderOuput;
+export interface HtmlBuilderOutput {
+  renderToHTMLString: BuildHtml;
+  globalLinks: { [componentName: string]: ARTNode['meta']['localLinks'] };
+}
+
+export type CreateHtmlBuilder = () => HtmlBuilderOutput;
 
 const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
-  const links: HtmlBuilderOuput['links'] = {};
+  const memoizedComponents: MemoizedComponentsMap = new Map();
+  const globalLinks: any = {};
 
   const html: BuildHtml = function html(tag, attrs, ...children) {
-    if (isComponent(tag)) return tag(attrs);
+
+    const localLinks: LocalLinks = Object.create(null);
+
+    if (isComponent(tag)) {
+      const memoizedResult = memoizedComponents.get(tag);
+
+      if (memoizedResult) return memoizedResult;
+
+      const renderResult = tag(attrs);
+
+      globalLinks[tag.name] = renderResult.meta.localLinks;
+
+      const memoTag: Component = (attrs) => tag(attrs);
+      memoizedComponents.set(memoTag, renderResult);
+      return renderResult;
+    };
 
     let [otag, ctag] = [`<${tag}`, `</${tag}>`];
 
@@ -47,10 +70,10 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
         }
       });
 
-      if (tag === 'a' && typeof attrs.to === 'function') {
+      if (tag === 'a' && isComponent(attrs.to)) {
         otag += ` href="${attrs.name}.html"`;
         const { htmlString } = html(attrs.to, null);
-        links[attrs.name] = htmlString;
+        localLinks[attrs.name] = htmlString;
       }
     }
 
@@ -61,12 +84,15 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       tag: tag,
       attrs: attrs,
       children: children,
+      meta: {
+        localLinks
+      }
     };
   };
 
   return {
     renderToHTMLString: html,
-    links: links,
+    globalLinks: globalLinks,
   };
 };
 

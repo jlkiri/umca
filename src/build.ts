@@ -105,7 +105,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
       // TODO: fix links (make it work on transitions from sub-pages to sub-pages)
 
-      Object.entries(htmlBuilder.links).forEach(([name, html]) => {
+      Object.entries(htmlBuilder.globalLinks).forEach(([name, html]) => {
         const htmlContent = `<!DOCTYPE html><html><head></head><body>${html}</body></html>`;
         fs.writeFileSync(`${path.join(OUTPUT_PATH, name)}.html`, htmlContent);
         prefetches.push(name);
