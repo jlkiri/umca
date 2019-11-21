@@ -37,8 +37,10 @@ function buildInputOptions(projectPath: string) {
 
   const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
 
+  const srcs = fs.readdirSync(`${projectPath}/src`).map(file => `src/${file}`).filter(path => path !== "src/index.jsx");
+
   const inputOptions: InputOptions = {
-    input: ['src/index.jsx', ...mdPages],
+    input: ['src/index.jsx', ...srcs, ...mdPages],
     preserveModules: true,
     plugins: [
       resolve({
@@ -113,7 +115,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
   }
 
   const linkedToComponents = Object.values(htmlBuilder.globalLinks)
-    .map(({ localLinks }) => localLinks.map(link => link.name))
+    .map(({ localLinks }) => localLinks)
     .map(([name]) => name);
 
   Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
@@ -124,7 +126,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       const prefetches = value.localLinks.map(
         link =>
           `<link rel="prefetch" href="${
-            link.name === indexName ? 'index' : link.name
+          link === indexName ? 'index' : link
           }.html" >`
       );
       const htmlContent = `<!DOCTYPE html><html><head>${prefetches}</head><body>${componentHtml}</body></html>`;

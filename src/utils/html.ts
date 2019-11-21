@@ -7,14 +7,14 @@ export interface ARTNode {
   htmlString: HTMLString;
   tag: Tag;
   attrs: Attrs | NativeAttrs | null;
-  children: ARTNode[];
+  children: ARTNode[] | string[];
   meta: { localLinks: LocalLinks };
 }
 
 type Tag = string | Component;
-type Attrs = Record<string, string | number> & { to: Component; name: string };
+type Attrs = Record<string, string | number> & { to: string; name: string };
 export type NativeAttrs = Omit<Attrs, 'to' | 'name'>;
-type Children = ARTNode[];
+type Children = ARTNode[] | string[];
 
 type BuildHtml = (
   tag: Tag,
@@ -26,7 +26,7 @@ type MemoizedComponentsMap = Map<Component, ARTNode>;
 
 export type Component = (attrs: Attrs | null) => ARTNode;
 
-type LocalLinks = Array<{ name: string; htmlString: HTMLString }>;
+type LocalLinks = Array<string>;
 type GlobalLinks = {
   [componentName: string]: {
     localLinks: ARTNode['meta']['localLinks'];
@@ -48,16 +48,25 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
   const html: BuildHtml = function html(tag, attrs, ...children) {
     const localLinks: LocalLinks = [];
 
-    if (isComponent(tag)) {
-      const memoizedResult = memoizedComponents.get(tag);
+    const childLocalLinks = (children as Array<ARTNode | string>).map(child => {
+      console.log(child);
+      if (typeof child === "string") return [];
+      console.log(child.meta.localLinks)
+      return child.meta.localLinks;
+    }).reduce((a, b) => a.concat(b), [])
 
-      if (memoizedResult) return memoizedResult;
+    if (isComponent(tag)) {
+      //const memoizedResult = memoizedComponents.get(tag);
+
+      // if (memoizedResult) return memoizedResult;
 
       const renderResult = tag(attrs);
 
+      const aggregateLinks = [...renderResult.meta.localLinks]
+
       globalLinks[tag.name] = {
         htmlString: renderResult.htmlString,
-        localLinks: renderResult.meta.localLinks,
+        localLinks: aggregateLinks
       };
 
       const memoTag: Component = attrs => tag(attrs);
@@ -68,7 +77,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
     let [otag, ctag] = [`<${tag}`, `</${tag}>`];
 
-    const childrenHtml = children.map(child => child.htmlString || child);
+    const childrenHtml = (children as Array<ARTNode | string>).map(child => typeof child === "string" ? child : child.htmlString);
 
     if (attrs) {
       Object.entries(attrs).forEach(([attr, value]) => {
@@ -77,10 +86,12 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
         }
       });
 
-      if (tag === 'a' && isComponent(attrs.to)) {
-        otag += ` href="${attrs.to.name}.html"`;
-        const { htmlString } = html(attrs.to, null);
-        localLinks.push({ name: attrs.to.name, htmlString });
+      if (tag === 'a' && attrs.to) {
+        otag += ` href="${attrs.to}.html"`;
+        //const memoizedResult = memoizedComponents.get(attrs.to);
+        // const { htmlString } = html(attrs.to, null);
+        localLinks.push(attrs.to);
+        console.log(localLinks)
       }
     }
 
@@ -92,7 +103,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       attrs: attrs,
       children: children,
       meta: {
-        localLinks,
+        localLinks: [...localLinks, ...childLocalLinks],
       },
     };
   };
