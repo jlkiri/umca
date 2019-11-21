@@ -11,8 +11,7 @@ import resolve from 'rollup-plugin-node-resolve';
 import injectHtml from './plugins/rollup-plugin-inject-html';
 import md from './plugins/rollup-plugin-md';
 import createModuleKeeper from './utils/moduleKeeper';
-import createHtmlBuilder from './utils/html';
-import isComponent from './utils/isComponent';
+import createHtmlBuilder, { Component } from './utils/html';
 import { getAuthorName, setAuthorName, getInstallCmd } from './helpers';
 import messages from './messages';
 
@@ -87,44 +86,53 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
   const componentPath = path.join(CACHE_PATH, sourceDir);
   const components = fs.readdirSync(componentPath);
 
-  for (const file of components) {
-    const isEntry = moduleKeeper.isEntry(entryTest(file));
-    if (isEntry) {
-      const htmlFileName = path.basename(file, '.js');
+  const entryModule = components.find(mod =>
+    moduleKeeper.isEntry(entryTest(mod))
+  );
 
-      const htmlObject = require(path.join(CACHE_PATH, sourceDir, file));
-      const { htmlString } = isComponent(htmlObject)
-        ? htmlObject(null)
-        : htmlObject;
+  if (!entryModule) return;
 
-      if (!fs.existsSync(OUTPUT_PATH)) {
-        fs.mkdirSync(OUTPUT_PATH);
-      }
+  console.log('is entry');
 
-      let prefetches: string[] = [];
+  const moduleName = path.basename(entryModule, '.js');
+  const renderResult: Component = require(path.join(
+    CACHE_PATH,
+    sourceDir,
+    moduleName
+  ));
 
-      // TODO: fix links (make it work on transitions from sub-pages to sub-pages)
+  htmlBuilder.renderToHTMLString(renderResult, null);
 
-      Object.entries(htmlBuilder.globalLinks).forEach(([name, html]) => {
-        const htmlContent = `<!DOCTYPE html><html><head></head><body>${html}</body></html>`;
-        fs.writeFileSync(`${path.join(OUTPUT_PATH, name)}.html`, htmlContent);
-        prefetches.push(name);
-      });
+  const indexName = renderResult.name;
 
-      const headPrefetch = prefetches.map(
-        name => `<link rel="prefetch" href="${name}.html" >`
-      );
+  console.log('indexName: ', indexName);
+  console.log('global links: ', htmlBuilder.globalLinks);
 
-      const htmlContent = `<!DOCTYPE html><html><head>${headPrefetch}</head><body>${htmlString}</body></html>`;
-
-      fs.writeFileSync(
-        `${path.join(OUTPUT_PATH, htmlFileName)}.html`,
-        htmlContent
-      );
-
-      htmlProgress.succeed(messages.htmlSuccess);
-    }
+  if (!fs.existsSync(OUTPUT_PATH)) {
+    fs.mkdirSync(OUTPUT_PATH);
   }
+
+  const linkedToComponents = Object.values(htmlBuilder.globalLinks)
+    .map(({ localLinks }) => localLinks.map(link => link.name))
+    .map(([name]) => name);
+
+  Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
+    const isIndexComponent = component === indexName;
+    const pageName = isIndexComponent ? 'index' : component;
+    if (linkedToComponents.includes(component) || isIndexComponent) {
+      const componentHtml = value.htmlString;
+      const prefetches = value.localLinks.map(
+        link =>
+          `<link rel="prefetch" href="${
+            link.name === indexName ? 'index' : link.name
+          }.html" >`
+      );
+      const htmlContent = `<!DOCTYPE html><html><head>${prefetches}</head><body>${componentHtml}</body></html>`;
+      fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
+    }
+  });
+
+  htmlProgress.succeed(messages.htmlSuccess);
 }
 
 cli
@@ -176,9 +184,7 @@ cli
 
     bootProgress.succeed(cyan(messages.generateSuccess));
 
-    const installProgress = ora(
-      cyan(messages.installInit)
-    ).start();
+    const installProgress = ora(cyan(messages.installInit)).start();
 
     const cmd = getInstallCmd();
     const addOrInstall = cmd === 'yarn' ? 'add' : 'install';
