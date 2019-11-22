@@ -37,7 +37,10 @@ function buildInputOptions(projectPath: string) {
 
   const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
 
-  const srcs = fs.readdirSync(`${projectPath}/src`).map(file => `src/${file}`).filter(path => path !== "src/index.jsx");
+  const srcs = fs
+    .readdirSync(`${projectPath}/src`)
+    .map(file => `src/${file}`)
+    .filter(path => path !== 'src/index.jsx');
 
   const inputOptions: InputOptions = {
     input: ['src/index.jsx', ...srcs, ...mdPages],
@@ -70,7 +73,8 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
   for (const chunkOrAsset of output) {
     if (chunkOrAsset.type === 'chunk') {
       const notMd = !/\.md\.js$/.test(chunkOrAsset.fileName);
-      if (chunkOrAsset.isEntry && notMd) {
+      const isEntry = /index\.js$/.test(chunkOrAsset.fileName);
+      if (isEntry && notMd) {
         moduleKeeper.saveEntryFileName(chunkOrAsset.fileName);
       }
     }
@@ -94,44 +98,41 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
   if (!entryModule) return;
 
-  console.log('is entry');
+  let indexComponentName: string;
 
-  const moduleName = path.basename(entryModule, '.js');
-  const renderResult: Component = require(path.join(
-    CACHE_PATH,
-    sourceDir,
-    moduleName
-  ));
+  components.forEach(component => {
+    const renderResult: Component = require(path.join(
+      CACHE_PATH,
+      sourceDir,
+      component
+    ));
 
-  htmlBuilder.renderToHTMLString(renderResult, null);
+    if (component === entryModule) {
+      indexComponentName = renderResult.name.toLowerCase();
+    }
 
-  const indexName = renderResult.name;
-
-  console.log('indexName: ', indexName);
-  console.log('global links: ', htmlBuilder.globalLinks);
+    htmlBuilder.renderToHTMLString(renderResult, null);
+  });
 
   if (!fs.existsSync(OUTPUT_PATH)) {
     fs.mkdirSync(OUTPUT_PATH);
   }
 
-  const linkedToComponents = Object.values(htmlBuilder.globalLinks)
-    .map(({ localLinks }) => localLinks)
-    .map(([name]) => name);
-
   Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
-    const isIndexComponent = component === indexName;
+    const isIndexComponent = component === indexComponentName;
+
+    if (!value.isLinkedTo && !isIndexComponent) return;
+
     const pageName = isIndexComponent ? 'index' : component;
-    if (linkedToComponents.includes(component) || isIndexComponent) {
-      const componentHtml = value.htmlString;
-      const prefetches = value.localLinks.map(
-        link =>
-          `<link rel="prefetch" href="${
-          link === indexName ? 'index' : link
-          }.html" >`
-      );
-      const htmlContent = `<!DOCTYPE html><html><head>${prefetches}</head><body>${componentHtml}</body></html>`;
-      fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
-    }
+    const componentHtml = value.htmlString;
+    const prefetches = value.localLinks.map(
+      link =>
+        `<link rel="prefetch" href="${
+          link === indexComponentName ? 'index' : link
+        }.html" >`
+    );
+    const htmlContent = `<!DOCTYPE html><html><head>${prefetches}</head><body>${componentHtml}</body></html>`;
+    fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
   });
 
   htmlProgress.succeed(messages.htmlSuccess);

@@ -27,10 +27,12 @@ type MemoizedComponentsMap = Map<Component, ARTNode>;
 export type Component = (attrs: Attrs | null) => ARTNode;
 
 type LocalLinks = Array<string>;
+type ComponentsLinkedTo = string[];
 type GlobalLinks = {
   [componentName: string]: {
     localLinks: ARTNode['meta']['localLinks'];
     htmlString: HTMLString;
+    isLinkedTo: boolean;
   };
 };
 
@@ -44,16 +46,17 @@ export type CreateHtmlBuilder = () => HtmlBuilderOutput;
 const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
   const memoizedComponents: MemoizedComponentsMap = new Map();
   const globalLinks: GlobalLinks = {};
+  const componentsLinkedTo: ComponentsLinkedTo = [];
 
   const html: BuildHtml = function html(tag, attrs, ...children) {
     const localLinks: LocalLinks = [];
 
-    const childLocalLinks = (children as Array<ARTNode | string>).map(child => {
-      console.log(child);
-      if (typeof child === "string") return [];
-      console.log(child.meta.localLinks)
-      return child.meta.localLinks;
-    }).reduce((a, b) => a.concat(b), [])
+    const childLocalLinks = (children as Array<ARTNode | string>)
+      .map(child => {
+        if (typeof child === 'string') return [];
+        return child.meta.localLinks;
+      })
+      .reduce((a, b) => a.concat(b), []);
 
     if (isComponent(tag)) {
       //const memoizedResult = memoizedComponents.get(tag);
@@ -62,11 +65,13 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
       const renderResult = tag(attrs);
 
-      const aggregateLinks = [...renderResult.meta.localLinks]
-
-      globalLinks[tag.name] = {
+      const aggregateLinks = [...renderResult.meta.localLinks];
+      const lowerCaseTag = tag.name.toLowerCase();
+      console.log(lowerCaseTag);
+      globalLinks[lowerCaseTag] = {
+        isLinkedTo: componentsLinkedTo.includes(lowerCaseTag),
         htmlString: renderResult.htmlString,
-        localLinks: aggregateLinks
+        localLinks: aggregateLinks,
       };
 
       const memoTag: Component = attrs => tag(attrs);
@@ -77,7 +82,9 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
     let [otag, ctag] = [`<${tag}`, `</${tag}>`];
 
-    const childrenHtml = (children as Array<ARTNode | string>).map(child => typeof child === "string" ? child : child.htmlString);
+    const childrenHtml = (children as Array<ARTNode | string>).map(child =>
+      typeof child === 'string' ? child : child.htmlString
+    );
 
     if (attrs) {
       Object.entries(attrs).forEach(([attr, value]) => {
@@ -88,10 +95,13 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
       if (tag === 'a' && attrs.to) {
         otag += ` href="${attrs.to}.html"`;
-        //const memoizedResult = memoizedComponents.get(attrs.to);
-        // const { htmlString } = html(attrs.to, null);
+
+        if (attrs.to in globalLinks) {
+          globalLinks[attrs.to].isLinkedTo = true;
+        }
+
+        componentsLinkedTo.push(attrs.to);
         localLinks.push(attrs.to);
-        console.log(localLinks)
       }
     }
 
