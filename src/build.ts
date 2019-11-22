@@ -37,13 +37,10 @@ function buildInputOptions(projectPath: string) {
 
   const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
 
-  const srcs = fs
-    .readdirSync(`${projectPath}/src`)
-    .map(file => `src/${file}`)
-    .filter(path => path !== 'src/index.jsx');
+  const srcs = fs.readdirSync(`${projectPath}/src`).map(file => `src/${file}`);
 
   const inputOptions: InputOptions = {
-    input: ['src/index.jsx', ...srcs, ...mdPages],
+    input: [...srcs, ...mdPages],
     preserveModules: true,
     plugins: [
       resolve({
@@ -86,10 +83,10 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
   const htmlProgress = ora(cyan(messages.htmlInit)).start();
 
-  const sourceDir = hasPages ? 'src' : '';
+  const sourceOutputDir = hasPages ? 'src' : '';
   const entryTest = (name: string) => (hasPages ? `src/${name}` : name);
 
-  const componentPath = path.join(CACHE_PATH, sourceDir);
+  const componentPath = path.join(CACHE_PATH, sourceOutputDir);
   const components = fs.readdirSync(componentPath);
 
   const entryModule = components.find(mod =>
@@ -103,7 +100,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
   components.forEach(component => {
     const renderResult: Component = require(path.join(
       CACHE_PATH,
-      sourceDir,
+      sourceOutputDir,
       component
     ));
 
