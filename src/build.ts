@@ -126,9 +126,11 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       link =>
         `<link rel="prefetch" href="${
           link === indexComponentName ? 'index' : link
-        }.html" >`
+        }.html">`
     );
-    const htmlContent = `<!DOCTYPE html><html><head>${prefetches}</head><body>${componentHtml}</body></html>`;
+    const htmlContent = `<!DOCTYPE html><html><head>${prefetches.join(
+      ''
+    )}</head><body>${componentHtml}</body></html>`;
     fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
   });
 
