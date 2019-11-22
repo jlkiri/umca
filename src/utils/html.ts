@@ -67,7 +67,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
       const aggregateLinks = [...renderResult.meta.localLinks];
       const lowerCaseTag = tag.name.toLowerCase();
-      console.log(lowerCaseTag);
+
       globalLinks[lowerCaseTag] = {
         isLinkedTo: componentsLinkedTo.includes(lowerCaseTag),
         htmlString: renderResult.htmlString,
