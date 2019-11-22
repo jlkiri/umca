@@ -125,7 +125,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
     const prefetches = value.localLinks.map(
       link =>
         `<link rel="prefetch" href="${
-          link === indexComponentName ? 'index' : link
+        link === indexComponentName ? 'index' : link
         }.html">`
     );
     const htmlContent = `<!DOCTYPE html><html><head>${prefetches.join(
@@ -139,7 +139,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
 cli
   .command('create <dir>')
-  .describe('Create a new purejsx project in the specified directory')
+  .describe('Create a new awave project in the specified directory')
   .example('create myblog')
   .action(async dir => {
     const bootProgress = ora(cyan(messages.generateInit)).start();
