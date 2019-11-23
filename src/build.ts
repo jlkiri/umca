@@ -6,13 +6,14 @@ import execa from 'execa';
 import ora from 'ora';
 import chalk from 'chalk';
 import { prompt } from 'enquirer';
+import postcss from '@jlkiri/rollup-plugin-postcss';
 import buble, { RollupBubleOptions } from '@rollup/plugin-buble';
 import resolve from 'rollup-plugin-node-resolve';
 import injectHtml from './plugins/rollup-plugin-inject-html';
 import md from './plugins/rollup-plugin-md';
 import createModuleKeeper from './utils/moduleKeeper';
 import createHtmlBuilder, { Component } from './utils/html';
-import { getAuthorName, setAuthorName, getInstallCmd } from './helpers';
+import { getAuthorName, setAuthorName, isCSS, getInstallCmd } from './helpers';
 import messages from './messages';
 
 const cli = sade('awave');
@@ -49,8 +50,16 @@ function buildInputOptions(projectPath: string) {
       md(),
       buble({
         jsx: 'htmlBuilder.renderToHTMLString',
+        exclude: '**/*.css',
+        transforms: {
+          modules: false
+        }
       } as RollupBubleOptions),
       injectHtml(requireHtmlPath),
+      postcss({
+        plugins: [require('tailwindcss')],
+        extract: true
+      }),
     ],
   };
 
@@ -64,77 +73,89 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
   const compileProgress = ora(cyan(messages.compileInit)).start();
 
-  const bundle = await rollup.rollup(inputOptions);
-  const { output } = await bundle.generate(outputOptions);
+  try {
+    const bundle = await rollup.rollup(inputOptions);
+    const { output } = await bundle.generate(outputOptions);
 
-  for (const chunkOrAsset of output) {
-    if (chunkOrAsset.type === 'chunk') {
-      const notMd = !/\.md\.js$/.test(chunkOrAsset.fileName);
-      const isEntry = /index\.js$/.test(chunkOrAsset.fileName);
-      if (isEntry && notMd) {
-        moduleKeeper.saveEntryFileName(chunkOrAsset.fileName);
+    for (const chunkOrAsset of output) {
+      if (chunkOrAsset.type === 'chunk') {
+        const notMd = !/\.md\.js$/.test(chunkOrAsset.fileName);
+        const isEntry = /index\.js$/.test(chunkOrAsset.fileName);
+        if (isEntry && notMd) {
+          moduleKeeper.saveEntryFileName(chunkOrAsset.fileName);
+        }
       }
     }
-  }
 
-  await bundle.write(outputOptions);
+    await bundle.write(outputOptions);
 
-  compileProgress.succeed(cyan(messages.compileSuccess));
+    compileProgress.succeed(cyan(messages.compileSuccess));
 
-  const htmlProgress = ora(cyan(messages.htmlInit)).start();
+    const htmlProgress = ora(cyan(messages.htmlInit)).start();
 
-  const sourceOutputDir = hasPages ? 'src' : '';
-  const entryTest = (name: string) => (hasPages ? `src/${name}` : name);
+    const sourceOutputDir = hasPages ? 'src' : '';
+    const entryTest = (name: string) => (hasPages ? `src/${name}` : name);
 
-  const componentPath = path.join(CACHE_PATH, sourceOutputDir);
-  const components = fs.readdirSync(componentPath);
+    const componentPath = path.join(CACHE_PATH, sourceOutputDir);
+    const components = fs.readdirSync(componentPath);
 
-  const entryModule = components.find(mod =>
-    moduleKeeper.isEntry(entryTest(mod))
-  );
+    const entryModule = components.find(mod =>
+      moduleKeeper.isEntry(entryTest(mod))
+    );
 
-  if (!entryModule) return;
+    if (!entryModule) return;
 
-  let indexComponentName: string;
+    let indexComponentName: string;
 
-  components.forEach(component => {
-    const renderResult: Component = require(path.join(
-      CACHE_PATH,
-      sourceOutputDir,
-      component
-    ));
+    components.forEach(component => {
+      if (isCSS(component)) return;
 
-    if (component === entryModule) {
-      indexComponentName = renderResult.name.toLowerCase();
+      const renderResult: Component = require(path.join(
+        CACHE_PATH,
+        sourceOutputDir,
+        component
+      ));
+
+      if (component === entryModule) {
+        indexComponentName = renderResult.name.toLowerCase();
+      }
+
+      htmlBuilder.renderToHTMLString(renderResult, null);
+    });
+
+    if (!fs.existsSync(OUTPUT_PATH)) {
+      fs.mkdirSync(OUTPUT_PATH);
     }
 
-    htmlBuilder.renderToHTMLString(renderResult, null);
-  });
+    const cssFile = fs.readdirSync(CACHE_PATH).filter(file => isCSS(file));
+    fs.renameSync(path.join(CACHE_PATH, cssFile[0]), path.join(OUTPUT_PATH, 'index.css'));
 
-  if (!fs.existsSync(OUTPUT_PATH)) {
-    fs.mkdirSync(OUTPUT_PATH);
+    Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
+      const isIndexComponent = component === indexComponentName;
+
+      if (!value.isLinkedTo && !isIndexComponent) return;
+
+      const pageName = isIndexComponent ? 'index' : component;
+      const componentHtml = value.htmlString;
+      const prefetches = value.localLinks.map(
+        link =>
+          `<link rel="prefetch" href="${
+          link === indexComponentName ? 'index' : link
+          }.html">`
+      );
+      const css = `<link rel="stylesheet" href="index.css" />`;
+      const htmlContent = `<!DOCTYPE html><html><head>${css}${prefetches.join(
+        ''
+      )}</head><body>${componentHtml}</body></html>`;
+      fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
+    });
+
+
+
+    htmlProgress.succeed(messages.htmlSuccess);
+  } catch (e) {
+    console.error('Build error: ', e);
   }
-
-  Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
-    const isIndexComponent = component === indexComponentName;
-
-    if (!value.isLinkedTo && !isIndexComponent) return;
-
-    const pageName = isIndexComponent ? 'index' : component;
-    const componentHtml = value.htmlString;
-    const prefetches = value.localLinks.map(
-      link =>
-        `<link rel="prefetch" href="${
-        link === indexComponentName ? 'index' : link
-        }.html">`
-    );
-    const htmlContent = `<!DOCTYPE html><html><head>${prefetches.join(
-      ''
-    )}</head><body>${componentHtml}</body></html>`;
-    fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
-  });
-
-  htmlProgress.succeed(messages.htmlSuccess);
 }
 
 cli

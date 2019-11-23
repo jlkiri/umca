@@ -41,3 +41,7 @@ export function getAuthorName() {
 export function setAuthorName(author: string) {
   shell.exec(`npm config set init-author-name "${author}"`, { silent: true });
 }
+
+export function isCSS(filename: string) {
+  return /\.css$/.test(filename) || /\.css\..*$/.test(filename);
+}
