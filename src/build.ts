@@ -192,6 +192,7 @@ cli
       author: author,
       scripts: {
         build: 'awave build',
+        start: 'serve public'
       },
       prettier: {
         printWidth: 80,
