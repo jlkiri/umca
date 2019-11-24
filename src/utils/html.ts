@@ -62,9 +62,9 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       .reduce((a, b) => a.concat(b), []);
 
     if (isComponent(tag)) {
+      // TODO: Memoize render results perhaps?
       //const memoizedResult = memoizedComponents.get(tag);
-
-      // if (memoizedResult) return memoizedResult;
+      //if (memoizedResult) return memoizedResult;
 
       const renderResult = tag({ ...attrs, children: flatChildren });
 
