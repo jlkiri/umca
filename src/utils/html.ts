@@ -52,9 +52,9 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
   const html: BuildHtml = function html(tag, attrs, ...children) {
     const localLinks: LocalLinks = [];
 
-    // const flatChildren = Array.isArray(children[0]) ? (children as Array<any>).map(([child]) => child) : children;
+    const flatChildren: Children = Array.isArray(children[0]) ? (children as Array<any>).map(([child]) => child) : children;
 
-    const childLocalLinks = (children as Array<ARTNode | string>)
+    const childLocalLinks = (flatChildren as Array<ARTNode | string>)
       .map(child => {
         if (typeof child === 'string') return [];
         return child.meta.localLinks;
@@ -62,12 +62,11 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       .reduce((a, b) => a.concat(b), []);
 
     if (isComponent(tag)) {
-      console.log(children);
       //const memoizedResult = memoizedComponents.get(tag);
 
       // if (memoizedResult) return memoizedResult;
 
-      const renderResult = tag({ ...attrs, children: children });
+      const renderResult = tag({ ...attrs, children: flatChildren });
 
       const aggregateLinks = [...renderResult.meta.localLinks];
       const lowerCaseTag = tag.name.toLowerCase();
@@ -86,7 +85,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
     let [otag, ctag] = [`<${tag}`, `</${tag}>`];
 
-    const childrenHtml = (children as Array<ARTNode | string>).map(child =>
+    const childrenHtml = (flatChildren as Array<ARTNode | string>).map(child =>
       typeof child === 'string' ? child : child.htmlString
     );
 
@@ -115,7 +114,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       htmlString: `${otag}${childrenHtml.join('')}${ctag}`,
       tag: tag,
       attrs: attrs,
-      children: children,
+      children: flatChildren,
       meta: {
         localLinks: [...localLinks, ...childLocalLinks],
       },
