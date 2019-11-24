@@ -52,7 +52,7 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
   const html: BuildHtml = function html(tag, attrs, ...children) {
     const localLinks: LocalLinks = [];
 
-    const flatChildren: Children = Array.isArray(children[0]) ? (children as Array<any>).map(([child]) => child) : children;
+    const flatChildren: Children = Array.isArray(children[0]) ? children[0] : children;
 
     const childLocalLinks = (flatChildren as Array<ARTNode | string>)
       .map(child => {
@@ -85,9 +85,11 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
 
     let [otag, ctag] = [`<${tag}`, `</${tag}>`];
 
-    const childrenHtml = (flatChildren as Array<ARTNode | string>).map(child =>
-      typeof child === 'string' ? child : child.htmlString
-    );
+    const childrenHtml = (flatChildren as Array<ARTNode | string>).map(child => {
+
+      return typeof child === 'string' ? child : child.htmlString
+    });
+
 
     if (attrs) {
       Object.entries(attrs).forEach(([attr, value]) => {
