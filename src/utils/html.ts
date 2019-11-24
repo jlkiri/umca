@@ -7,12 +7,13 @@ export interface ARTNode {
   htmlString: HTMLString;
   tag: Tag;
   attrs: Attrs | NativeAttrs | null;
-  children: ARTNode[] | string[];
+  children: Children;
   meta: { localLinks: LocalLinks };
 }
 
 type Tag = string | Component;
-type Attrs = Record<string, string | number> & { to: string; name: string };
+type Attrs = Record<string, string | undefined | number | Children> & { to?: string; };
+
 export type NativeAttrs = Omit<Attrs, 'to' | 'name'>;
 type Children = ARTNode[] | string[];
 
@@ -24,7 +25,7 @@ type BuildHtml = (
 
 type MemoizedComponentsMap = Map<Component, ARTNode>;
 
-export type Component = (attrs: Attrs | null) => ARTNode;
+export type Component = (attrs: Attrs & { children: Children } | null) => ARTNode;
 
 type LocalLinks = Array<string>;
 type ComponentsLinkedTo = string[];
@@ -51,6 +52,8 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
   const html: BuildHtml = function html(tag, attrs, ...children) {
     const localLinks: LocalLinks = [];
 
+    // const flatChildren = Array.isArray(children[0]) ? (children as Array<any>).map(([child]) => child) : children;
+
     const childLocalLinks = (children as Array<ARTNode | string>)
       .map(child => {
         if (typeof child === 'string') return [];
@@ -59,11 +62,12 @@ const createHtmlBuilder: CreateHtmlBuilder = function createHtmlBuilder() {
       .reduce((a, b) => a.concat(b), []);
 
     if (isComponent(tag)) {
+      console.log(children);
       //const memoizedResult = memoizedComponents.get(tag);
 
       // if (memoizedResult) return memoizedResult;
 
-      const renderResult = tag(attrs);
+      const renderResult = tag({ ...attrs, children: children });
 
       const aggregateLinks = [...renderResult.meta.localLinks];
       const lowerCaseTag = tag.name.toLowerCase();
