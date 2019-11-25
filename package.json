@@ -1,14 +1,14 @@
 {
-  "name": "awave",
-  "version": "0.5.0",
+  "name": "umca",
+  "version": "0.6.0",
   "license": "MIT",
   "author": "Kirill Vasiltsov",
   "type": "module",
   "main": "dist/index.js",
-  "module": "dist/awave.esm.js",
+  "module": "dist/umca.esm.js",
   "typings": "dist/index.d.ts",
   "bin": {
-    "awave": "./dist/awave.cjs.development.js"
+    "umca": "./dist/umca.cjs.development.js"
   },
   "files": [
     "dist"
@@ -31,7 +31,7 @@
   "dependencies": {
     "@jlkiri/rollup-plugin-postcss": "^2.0.4",
     "@rollup/plugin-buble": "^0.20.0",
-    "awave": "^0.1.4",
+    "umca": "^0.6.0",
     "buble": "^0.19.8",
     "chalk": "^3.0.0",
     "enquirer": "^2.3.2",

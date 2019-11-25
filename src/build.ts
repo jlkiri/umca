@@ -16,7 +16,7 @@ import createHtmlBuilder, { Component } from './utils/html';
 import { getAuthorName, setAuthorName, isCSS, getInstallCmd } from './helpers';
 import messages from './messages';
 
-const cli = sade('awave');
+const cli = sade('umca');
 const cyan = chalk.cyanBright;
 const green = chalk.green;
 
@@ -160,7 +160,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
 cli
   .command('create <dir>')
-  .describe('Create a new awave project in the specified directory')
+  .describe('Create a new umca project in the specified directory')
   .example('create myblog')
   .action(async dir => {
     const bootProgress = ora(cyan(messages.generateInit)).start();
@@ -191,7 +191,7 @@ cli
       license: 'MIT',
       author: author,
       scripts: {
-        build: 'awave build',
+        build: 'umca build',
         start: 'serve public'
       },
       prettier: {

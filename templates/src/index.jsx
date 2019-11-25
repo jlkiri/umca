@@ -29,9 +29,7 @@ function LogoContainer({ children }) {
 
 function Logo() {
   return (
-    <span class="text-6xl text-indigo-900 tracking-widest font-bold">
-      AWAVE
-    </span>
+    <span class="text-6xl text-indigo-900 tracking-widest font-bold">Umca</span>
   );
 }
 
