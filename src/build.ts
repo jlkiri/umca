@@ -52,13 +52,12 @@ function buildInputOptions(projectPath: string) {
         jsx: 'htmlBuilder.renderToHTMLString',
         exclude: '**/*.css',
         transforms: {
-          modules: false
-        }
+          modules: false,
+        },
       } as RollupBubleOptions),
       injectHtml(requireHtmlPath),
       postcss({
         plugins: [require('tailwindcss')],
-        extract: true
       }),
     ],
   };
@@ -127,8 +126,13 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       fs.mkdirSync(OUTPUT_PATH);
     }
 
-    const cssFile = fs.readdirSync(CACHE_PATH).filter(file => isCSS(file));
-    fs.renameSync(path.join(CACHE_PATH, cssFile[0]), path.join(OUTPUT_PATH, 'index.css'));
+    const cssString = require(path.join(
+      CACHE_PATH,
+      sourceOutputDir,
+      'styles.css.js'
+    ));
+
+    fs.writeFileSync(path.join(OUTPUT_PATH, 'index.css'), cssString);
 
     Object.entries(htmlBuilder.globalLinks).forEach(([component, value]) => {
       const isIndexComponent = component === indexComponentName;
@@ -140,7 +144,7 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       const prefetches = value.localLinks.map(
         link =>
           `<link rel="prefetch" href="${
-          link === indexComponentName ? 'index' : link
+            link === indexComponentName ? 'index' : link
           }.html">`
       );
       const css = `<link rel="stylesheet" href="index.css" />`;
@@ -149,8 +153,6 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       )}</head><body>${componentHtml}</body></html>`;
       fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
     });
-
-
 
     htmlProgress.succeed(messages.htmlSuccess);
   } catch (e) {
@@ -192,7 +194,7 @@ cli
       author: author,
       scripts: {
         build: 'umca build',
-        start: 'serve public'
+        start: 'serve public',
       },
       prettier: {
         printWidth: 80,
