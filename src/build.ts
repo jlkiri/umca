@@ -6,6 +6,7 @@ import execa from 'execa';
 import ora from 'ora';
 import chalk from 'chalk';
 import { prompt } from 'enquirer';
+import Purgecss from 'purgecss';
 import postcss from '@jlkiri/rollup-plugin-postcss';
 import buble, { RollupBubleOptions } from '@rollup/plugin-buble';
 import resolve from 'rollup-plugin-node-resolve';
@@ -36,7 +37,7 @@ function buildInputOptions(projectPath: string) {
     ? fs.readdirSync(`${projectPath}/pages`).map(page => `pages/${page}`)
     : [];
 
-  const requireHtmlPath = hasPages ? '../../index.js' : '../index.js';
+  const requireHtmlPath = '../../index.js';
 
   const srcs = fs.readdirSync(`${projectPath}/src`).map(file => `src/${file}`);
 
@@ -67,7 +68,7 @@ function buildInputOptions(projectPath: string) {
 
 const htmlBuilder = createHtmlBuilder();
 
-async function build(inputOptions: InputOptions, hasPages: boolean) {
+async function build(inputOptions: InputOptions) {
   const moduleKeeper = createModuleKeeper();
 
   const compileProgress = ora(cyan(messages.compileInit)).start();
@@ -92,8 +93,8 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
 
     const htmlProgress = ora(cyan(messages.htmlInit)).start();
 
-    const sourceOutputDir = hasPages ? 'src' : '';
-    const entryTest = (name: string) => (hasPages ? `src/${name}` : name);
+    const sourceOutputDir = 'src';
+    const entryTest = (name: string) => `src/${name}`;
 
     const componentPath = path.join(CACHE_PATH, sourceOutputDir);
     const components = fs.readdirSync(componentPath);
@@ -153,6 +154,15 @@ async function build(inputOptions: InputOptions, hasPages: boolean) {
       )}</head><body>${componentHtml}</body></html>`;
       fs.writeFileSync(`${path.join(OUTPUT_PATH, pageName)}.html`, htmlContent);
     });
+
+    const purgecss = new Purgecss({
+      content: [`${path.join(OUTPUT_PATH)}/*.html`],
+      css: [`${path.join(OUTPUT_PATH)}/index.css`],
+    });
+
+    const purgecssResult = purgecss.purge();
+
+    console.log(purgecssResult);
 
     htmlProgress.succeed(messages.htmlSuccess);
   } catch (e) {
@@ -228,9 +238,9 @@ cli
   .action(async () => {
     console.log(cyan(messages.buildInit));
     const projectPath = `${fs.realpathSync(process.cwd())}`;
-    const { inputOptions, hasPages } = buildInputOptions(projectPath);
+    const { inputOptions } = buildInputOptions(projectPath);
 
-    await build(inputOptions, hasPages);
+    await build(inputOptions);
   });
 
 cli.parse(process.argv);
