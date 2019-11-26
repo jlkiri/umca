@@ -162,7 +162,11 @@ async function build(inputOptions: InputOptions) {
 
     const purgecssResult = purgecss.purge();
 
-    console.log(purgecssResult);
+    for (const result of purgecssResult) {
+      if (result.file && isCSS(result.file)) {
+        fs.writeFileSync(result.file, result.css);
+      }
+    }
 
     htmlProgress.succeed(messages.htmlSuccess);
   } catch (e) {
