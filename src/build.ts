@@ -16,6 +16,7 @@ import createModuleKeeper from './utils/moduleKeeper';
 import createHtmlBuilder, { Component } from './utils/html';
 import { getAuthorName, setAuthorName, isCSS, getInstallCmd } from './helpers';
 import messages from './messages';
+import CSSExtractor from './utils/cssExtractor';
 
 const cli = sade('umca');
 const cyan = chalk.cyanBright;
@@ -158,6 +159,12 @@ async function build(inputOptions: InputOptions) {
     const purgecss = new Purgecss({
       content: [`${path.join(OUTPUT_PATH)}/*.html`],
       css: [`${path.join(OUTPUT_PATH)}/index.css`],
+      extractors: [
+        {
+          extractor: CSSExtractor,
+          extensions: ['html'],
+        },
+      ],
     });
 
     const purgecssResult = purgecss.purge();
